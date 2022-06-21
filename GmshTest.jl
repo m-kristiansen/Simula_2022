@@ -51,8 +51,11 @@ gmsh.model.geo.synchronize() # Sync CAD representation
 gmsh.model.addPhysicalGroup(0, [1, 2], 1) # Physical point (dimension 0, point 1 and 2)
 gmsh.model.addPhysicalGroup(1, [1, 2], 2) # Physical curve (dim 1, point 1, 2)
 gmsh.model.addPhysicalGroup(2, [1], 6)
+gmsh.model.addPhysicalGroup(1, [1,2,3,4], 3)
+
 
 gmsh.model.setPhysicalName(2, 6, "My surface")
+gmsh.model.setPhysicalName(1, 3, "Sides")
 
 gmsh.model.mesh.generate(2)
 
