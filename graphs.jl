@@ -141,13 +141,22 @@ graph_edges = [1 2;
 box_embed(graph_nodes, graph_edges, padding=0.01, align = true, view = true)
 	       
 # #Define nodes
+# https://de.mathworks.com/matlabcentral/communitycontests/contests/4/entries/5346
+
+    # 
 
 
-# 
 
+#using VoronoiDelaunay
 
+points = Point2D[]
+X = rand(10, 2)
+for x in eachrow(X)
+    push!(points, Point2D(x...))
+end
 
-# """
+tess = DelaunayTessellation(length(points))
+push!(tess, points) """
 # if distance from node_i < padding
 #     node_i_x = max_node_x
 # """
