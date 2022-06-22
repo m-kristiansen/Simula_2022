@@ -65,7 +65,7 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
         box = [(b[1, 1], b[2, 1]), (b[1,2], b[2,2]), (b[1,3], b[2,3]), (b[1, 4], b[2,4])] #reshape
     end
     
-    return (b1, b2, b3, b4)
+    return box
 end
 
 
@@ -75,9 +75,10 @@ function box_embed(graph_nodes, graph_edges; padding=0.2, align::Bool=false, vie
 
     gmsh.model.add("Graph_1")
 
-
+    # Get the box first
     b1, b2, b3, b4 = get_bounding_box(graph_nodes[:, 1], graph_nodes[:, 2], padding=padding, align=align, view=view)
 
+    # Now start defining model
     bp1 = gmsh.model.geo.addPoint(b1[1], b1[2], 0)
     bp2 = gmsh.model.geo.addPoint(b2[1], b2[2], 0)
     bp3 = gmsh.model.geo.addPoint(b3[1], b3[2], 0)
@@ -101,7 +102,9 @@ function box_embed(graph_nodes, graph_edges; padding=0.2, align::Bool=false, vie
     gmsh.model.setPhysicalName(1, 3, "sides") #(dim, tag, label)
 
     gmsh.model.geo.synchronize() # Sync CAD representation
-    # At this point we are done with the tissure, now we need vasculature
+    
+    # At this point we are done with the tissue, now we need vasculature
+    # So add the graph
 
     graph_points = [gmsh.model.geo.addPoint(x..., 0) for x in eachrow(graph_nodes)]
     
@@ -133,9 +136,9 @@ Y = [0, 0.25, 0.5, 0.5]
 graph_nodes = hcat(X, Y)
 graph_edges = [1 2;
                2 3;
-	       2 4]
+	           2 4]
 
-box_embed(graph_nodes, graph_edges, padding=0.01, align = false, view = true)
+box_embed(graph_nodes, graph_edges, padding=0.01, align = true, view = true)
 	       
 # #Define nodes
 
