@@ -64,7 +64,7 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
         b = (inv(rot_matrix)*b')
         box = [(b[1, 1], b[2, 1]), (b[1,2], b[2,2]), (b[1,3], b[2,3]), (b[1, 4], b[2,4])] #reshape
     end
-    
+
     return (b1, b2, b3, b4)
 end
 
@@ -93,7 +93,7 @@ function box_embed(graph_nodes, graph_edges; padding=0.2, align::Bool=false, vie
     boxsurface = gmsh.model.geo.addPlaneSurface([boxloop])
 
     gmsh.model.geo.synchronize() # Sync CAD representation
-    
+
     gmsh.model.addPhysicalGroup(2, [boxsurface], 2) #(dim, tag, label)
     gmsh.model.setPhysicalName(2, 2, "My surface") #(dim, tag, label)
 
@@ -104,19 +104,19 @@ function box_embed(graph_nodes, graph_edges; padding=0.2, align::Bool=false, vie
     # At this point we are done with the tissure, now we need vasculature
 
     graph_points = [gmsh.model.geo.addPoint(x..., 0) for x in eachrow(graph_nodes)]
-    
+
     graph_lines = [gmsh.model.geo.addLine(graph_points[i], graph_points[j])
                    for (i, j) in eachrow(graph_edges)]
     print(graph_lines)
     gmsh.model.geo.synchronize() # Sync CAD representation
-    
+
     gmsh.model.geo.addPhysicalGroup(1, graph_lines, 1)
     # gmsh.model.geo.setPhysicalName(1, 1, "Graph")
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
     gmsh.model.mesh.embed(1, graph_lines, 2, boxsurface)
-    
+
     if view
         gmsh.fltk.run()
     end
@@ -131,20 +131,6 @@ X = [0.5, 0.5, 0.25, 0.75]
 Y = [0, 0.25, 0.5, 0.5]
 
 graph_nodes = hcat(X, Y)
-graph_edges = [1 2;
-               2 3;
-	       2 4]
+graph_edges = [1 2; 2 3; 2 4]
 
 box_embed(graph_nodes, graph_edges, padding=0.01, align = false, view = true)
-	       
-# #Define nodes
-
-
-# 
-
-
-
-# """
-# if distance from node_i < padding
-#     node_i_x = max_node_x
-# """
