@@ -26,7 +26,7 @@ function min_area_rect(points, hull)
     angle = atan(x, y)
     rot_matrix = [[cos(angle),sin(angle)] [-sin(angle), cos(angle)]] #Rotational matrix
     p = [[points[i][1] for i in 1:length(points)] [points[i][2] for i in 1:length(points)]] #reshape
-    new_points = rot_matrix*p'
+    new_points = rot_matrix*p' #' denotes transpose
 
 
 return new_points', rot_matrix
@@ -39,9 +39,9 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
     padding prevents the graph from intersecting the bounding box."""
 
     if align
+        #Rotate coordinates
         p = [[x_values[i], y_values[i]] for i in 1:length(x_values)]
-        hull = convex_hull(p) #
-        print(hull)
+        hull = convex_hull(p) #LazySets
         p_new, rot_matrix = min_area_rect(p, hull)
         x_values = p_new[:, 1]
         y_values = p_new[:, 2]
@@ -60,6 +60,7 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
 
     box = [b1, b2, b3, b4]
     if align
+        #Rotate back
         b = [[box[i][1] for i in 1:length(box)] [box[i][2] for i in 1:length(box)]] #reshape
         b = (inv(rot_matrix)*b')
         box = [(b[1, 1], b[2, 1]), (b[1,2], b[2,2]), (b[1,3], b[2,3]), (b[1, 4], b[2,4])] #reshape
@@ -69,62 +70,63 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
 end
 
 
-function box_embed(graph_nodes, graph_edges; padding=0.2, align::Bool=false, view::Bool=true)
-
+function box_embed(graph_nodes, graph_lines; padding=0.2, align::Bool=false, view::Bool=true)
+ """ Main function to compute bounding box and mesh for graph """
     gmsh.initialize()
 
     gmsh.model.add("Graph_1")
 
-    # Get the box first
+    # Get bounding box from graph nodes
     b1, b2, b3, b4 = get_bounding_box(graph_nodes[:, 1], graph_nodes[:, 2], padding=padding, align=align, view=view)
 
-    # Now start defining model
+    # add box points to gmsh
     bp1 = gmsh.model.geo.addPoint(b1[1], b1[2], 0)
     bp2 = gmsh.model.geo.addPoint(b2[1], b2[2], 0)
     bp3 = gmsh.model.geo.addPoint(b3[1], b3[2], 0)
     bp4 = gmsh.model.geo.addPoint(b4[1], b4[2], 0)
 
+    # add box lines to gmsh
     bl12 = gmsh.model.geo.addLine(bp1, bp2)
     bl23 = gmsh.model.geo.addLine(bp2, bp3)
     bl34 = gmsh.model.geo.addLine(bp3, bp4)
     bl41 = gmsh.model.geo.addLine(bp4, bp1)
 
     boxloop = gmsh.model.geo.addCurveLoop([bl12, bl23, bl34, bl41])
-
     boxsurface = gmsh.model.geo.addPlaneSurface([boxloop])
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
-    gmsh.model.addPhysicalGroup(2, [boxsurface], 2) #(dim, tag, label)
-    gmsh.model.setPhysicalName(2, 2, "My surface") #(dim, tag, label)
+    gmsh.model.addPhysicalGroup(2, [boxsurface], 1) #(dim, tag, label)
+    gmsh.model.setPhysicalName(2, 1, "My surface") #(dim, tag, label)
 
-    gmsh.model.addPhysicalGroup(1, [bl12, bl23, bl34, bl41], 3) #(dim, tag, label)
-    gmsh.model.setPhysicalName(1, 3, "sides") #(dim, tag, label)
+    gmsh.model.addPhysicalGroup(1, [bl12, bl23, bl34, bl41], 2) #(dim, tag, label)
+    gmsh.model.setPhysicalName(1, 2, "Boundary") #(dim, tag, label)
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
     # At this point we are done with the tissue, now we need vasculature
     # So add the graph
 
+    # add graph points to gmsh
     graph_points = [gmsh.model.geo.addPoint(x..., 0) for x in eachrow(graph_nodes)]
 
+    # add graph lines to gmsh
     graph_lines = [gmsh.model.geo.addLine(graph_points[i], graph_points[j])
-                   for (i, j) in eachrow(graph_edges)]
-    print(graph_lines)
-    gmsh.model.geo.synchronize() # Sync CAD representation
-
-    gmsh.model.geo.addPhysicalGroup(1, graph_lines, 1)
-    # gmsh.model.geo.setPhysicalName(1, 1, "Graph")
+                   for (i, j) in eachrow(graph_lines)]
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
-    gmsh.model.mesh.embed(1, graph_lines, 2, boxsurface)
+    gmsh.model.geo.addPhysicalGroup(1, graph_lines, 3)
+    gmsh.model.setPhysicalName(1, 3, "Graph")
+
+    gmsh.model.geo.synchronize() # Sync CAD representation
+
+    #embed the graph in the mesh
+    gmsh.model.mesh.embed(1, graph_lines, 2, boxsurface) # (dim object_1, object_1, dim object_2, object_2)
 
     if view
         gmsh.fltk.run()
     end
-
-    gmsh.model.mesh.generate(2)
 
     gmsh.finalize()
 end
@@ -133,20 +135,13 @@ end
 X = [0.5, 0.5, 0.25, 0.75]
 Y = [0, 0.25, 0.5, 0.5]
 
-graph_nodes = hcat(X, Y)
-graph_edges = [1 2;
-               2 3;
-	           2 4]
+graph_nodes = hcat(X, Y) #Horizontal concatenation
+graph_lines = [1 2; 2 3; 2 4] #define connection between graph nodes
 
-box_embed(graph_nodes, graph_edges, padding=0.01, align = true, view = true)
+box_embed(graph_nodes, graph_lines, padding=0.01, align = true, view = true)
 
 # #Define nodes
 # https://de.mathworks.com/matlabcentral/communitycontests/contests/4/entries/5346
-
-    #
-
-
-
 #using VoronoiDelaunay
 """
 points = Point2D[]
@@ -156,8 +151,7 @@ for x in eachrow(X)
 end
 
 tess = DelaunayTessellation(length(points))
-push!(tess, points) """
+push!(tess, points)
 # if distance from node_i < padding
 #     node_i_x = max_node_x
-# """
 """
