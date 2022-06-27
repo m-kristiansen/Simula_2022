@@ -24,7 +24,7 @@ function random_graph(X)
     # out boundary one
     for (cid, cell) in enumerate(eachrow(simplices))
     	 cell_edges = [(cell[1], cell[2]), (cell[2], cell[3]), (cell[3], cell[1])]
-	   
+
         for edge in cell_edges
 	        # In the mapping we sort them
 	        if edge[1] < edge[2]
@@ -32,8 +32,8 @@ function random_graph(X)
             else
 	            key = (edge[2], edge[1])
             end
-            
-            if key ∈ keys(edge2cells)  
+
+            if key ∈ keys(edge2cells)
                 push!(edge2cells[key], cid)
             else
                 edge2cells[key] = [cid]
@@ -46,7 +46,7 @@ function random_graph(X)
      graph_edges = hcat(collect.(graph_edges)...)'
      # It may happen that in clipping boundary some vertex is left isolated
      used = collect(reduce(union, map(Set, graph_edges)))
-     
+
      length(used) == size(X, 1) && return (X, graph_edges)
 
      # Otherwise redefine edges ...
@@ -72,5 +72,5 @@ false && begin
         local y = [graph_nodes[edge[1], 2], graph_nodes[edge[2], 2]]
         plot!(x, y, legend=false)
     end
-    display(p)
+    savefig(p, "random_graph.png")
 end

@@ -1,6 +1,9 @@
 using GridapGmsh: gmsh
 using LazySets
 
+using Random
+Random.seed!(2021)
+
 function min_area_rect(points, hull)
     """ Get minimum area rectangle by rotation w.r.t the longest line of the convex hull.
     returns: Rotated input points and rotation matrix. """
@@ -23,11 +26,10 @@ function min_area_rect(points, hull)
     x = edges[longest_edge_idx][1]
     y = edges[longest_edge_idx][2]
 
-    angle = atan(x, y)
-    rot_matrix = [[cos(angle),sin(angle)] [-sin(angle), cos(angle)]] #Rotational matrix
+    angle = -atan(y, x) #Minus because we want clockwise rotation
+    rot_matrix = [cos(angle) -sin(angle); sin(angle) cos(angle)] #Rotational matrix
     p = [[points[i][1] for i in 1:length(points)] [points[i][2] for i in 1:length(points)]] #reshape
-    new_points = rot_matrix*p' #' denotes transpose
-
+    new_points = rot_matrix*p'
 
 return new_points', rot_matrix
 end
@@ -138,7 +140,7 @@ Y = [0, 0.25, 0.5, 0.5]
 graph_nodes = hcat(X, Y) #Horizontal concatenation
 graph_lines = [1 2; 2 3; 2 4] #define connection between graph nodes
 
-box_embed(graph_nodes, graph_lines, padding=0.01, align = true, view = true)
+#box_embed(graph_nodes, graph_lines, padding=0.01, align = true, view = true)
 
 # Stress test
 include("random_graph.jl")
@@ -146,6 +148,6 @@ include("random_graph.jl")
 (graph_nodes, graph_edges) = random_graph(30)
 
 box_embed(graph_nodes, graph_edges, padding=0.01, align = true, view = true)
-	       
+
 # #Define nodes
 # https://de.mathworks.com/matlabcentral/communitycontests/contests/4/entries/5346
