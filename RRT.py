@@ -2,26 +2,39 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import scipy.spatial as ss
-#np.random.seed(1)
+np.random.seed(5)
 
-def intersect(a1, a2, b1, b2):
+def intersect(p1, p2, p3, p4):
     """
-    Returns the point of intersection of the lines passing through a2,a1 and b2,b1.
-    a1: [x, y] a point on the first line
-    a2: [x, y] another point on the first line
-    b1: [x, y] a point on the second line
-    b2: [x, y] another point on the second line
+    return True if line intersection
+    url(https://en.wikipedia.org/wiki/Line–line_intersection)
     """
 
-    s = np.vstack([a1,a2,b1,b2])
-    h = np.hstack((s, np.ones((4, 1))))
-    l1 = np.cross(h[0], h[1])
-    l2 = np.cross(h[2], h[3])
-    x, y, z = np.cross(l1, l2)
-    print(z)
-    if z == 0:
-        return False #no intersection
-    return True
+    x1, y1 = p1 # a point on the first line
+    x2, y2 = p2 # another point on the first line
+    x3, y3 = p3 # a point on the second line
+    x4, y4 = p4 # another point on the second line
+
+    #check paralell:
+    if (x1-x2)*(y3-y4) == (y1-y2)*(x3-x4):
+        return True
+
+    px = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+    py = ((x1*y2-y1*x2)*(y3-y4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+
+    #scalar value desciding point of intersection on line 1
+    t = ((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)) #scalar value desciding point of intersection on line 1
+
+    #scalar value desciding point of intersection on line 2
+    u = ((x1-x3)*(y1-y2)-(y1-y3)*(x1-x2))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+
+    _ = [t, u]
+
+    if all(0<= i <= 1 for i in _):
+        #print('points = {}'.format(((x1, y1),(x2, y2), (x3, y3), (x4, y4))))
+        return True
+
+    return False
 
 
 def RRT(num_points, connectivity, starting_point):
@@ -62,20 +75,36 @@ def connect_RRT(points, max_norm):
         if (i in np.array(connections)) == False:
             points[i, :] = None
 
-    #TODO
     #exclude nodes with intersect connections
+    for i in range(len(connections)):
+        for j in range(len(connections)):
+            if i<j:
+                if connections[i][0] not in connections[j] and connections[i][1] not in connections[j] :
+                    if intersect(points[connections[i][0], :], points[connections[i][1], :], \
+                        points[connections[j][0], :], points[connections[j][1], :]):
+                        print(connections[i],connections[j])#print intersect connection
 
     return points, connections
 
 
-#testing
+def plot_graph(nodes, lines, view = True):
+    fig, ax = plt.subplots()
+    ax.scatter(nodes[:, 0], nodes[:, 1], s = 0.1)
+    n = range(len(points[:, 0]))
+    for i, txt in enumerate(n):
+        ax.annotate(txt, (nodes[i, 0], nodes[i, 1]), fontsize = 6)
+    for i, j in lines:
+        ax.plot([nodes[i, 0], nodes[j, 0]], [nodes[i, 1], nodes[j, 1]], 'b-', lw = 0.1)
+
+    if view:
+        plt.show()
+
+
+
 starting_point = np.array([0, 0])
-points = RRT(30, 0.3, starting_point)
+points = RRT(20, 0.1, starting_point)
 nodes, lines = connect_RRT(points, 1)
-plt.scatter(nodes[:, 0], nodes[:, 1])
-for i, j in lines:
-    plt.plot([nodes[i, 0], nodes[j, 0]], [nodes[i, 1], nodes[j, 1]], 'b-', lw = 0.1)
-plt.show()
+plot_graph(nodes, lines)
 
 
 
