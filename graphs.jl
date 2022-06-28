@@ -1,6 +1,5 @@
 using GridapGmsh: gmsh
 using LazySets
-
 using Random
 Random.seed!(2021)
 
@@ -133,21 +132,20 @@ function box_embed(graph_nodes, graph_lines; padding=0.2, align::Bool=false, vie
     gmsh.finalize()
 end
 
-
-X = [0.5, 0.5, 0.25, 0.75]
-Y = [0, 0.25, 0.5, 0.5]
-
-graph_nodes = hcat(X, Y) #Horizontal concatenation
-graph_lines = [1 2; 2 3; 2 4] #define connection between graph nodes
-
-#box_embed(graph_nodes, graph_lines, padding=0.01, align = true, view = true)
-
-# Stress test
-include("random_graph.jl")
-
-(graph_nodes, graph_edges) = random_graph(30)
+#tester
+include("RRT.jl")
+points  = RRT(30, 0.3, [0.0, 0.0])
+(graph_nodes, graph_edges) = connect_RRT(points, 1.0)
 
 box_embed(graph_nodes, graph_edges, padding=0.01, align = true, view = true)
 
-# #Define nodes
-# https://de.mathworks.com/matlabcentral/communitycontests/contests/4/entries/5346
+
+"""
+# Stress test
+include("random_graph.jl")
+
+(graph_nodes, graph_edges) = random_graph(10)
+println(graph_edges)
+
+box_embed(graph_nodes, graph_edges, padding=0.01, view = true)
+"""
