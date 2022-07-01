@@ -1,0 +1,126 @@
+using Gridap
+using GridapGmsh
+
+"""
+Performing a convergence test, where we are going to use all the new concepts we have learned.
+We will consider a manufactured solution that does not belong to the FE interpolation space.
+In this test, we expect to see the optimal convergence order of the FE discretization.
+"""
+
+include("RRT.jl")
+include("graphs.jl")
+include("model.jl")
+
+# Here, we define the manufactured functions
+μ = 1e-5 #Dynamic viscosity
+u(x) = VectorValue(-cos(x[1])*sin(x[2]), cos(x[2])*sin(x[1]))
+∇u(x) = TensorValue(sin(x[1])*sin(x[2]), -cos(x[1])*cos(x[2]), cos(x[1])*cos(x[2]), -sin(x[1])*sin(x[2]))
+f(x) = -2*μ*VectorValue(cos(x[1])*sin(x[2]), -cos(x[2])*sin(x[1]))
+
+import Gridap: ∇
+∇(::typeof(u)) = ∇u #define gradient
+
+function run(n)
+"""
+In order to perform the convergence test, we write in a function all the
+code needed to perform a single computation and measure its error.
+The input of this function is the number of cells in each direction and the interpolation order.
+The output is the computed L^2 and H^1 error norms.
+"""
+
+    points  = RRT(30, 0.3, [0.0, 0.0]) #draw points
+    (graph_nodes, graph_edges) = connect_RRT(points, 1.0) #connect points
+    box_embed(graph_nodes, graph_edges, mesh_size = n, padding=0.2, align = true, view = false) #compute mesh and bouding box
+
+    model = GmshDiscreteModel("graph.msh") #Load model
+
+    # Define reference FE (Q2/P1(disc) pair)
+    order = 2
+    reffeᵤ = ReferenceFE(lagrangian, VectorValue{2,Float64}, order)
+    reffeₚ = ReferenceFE(lagrangian,Float64,order-1;space=:P)
+
+    # Define test FESpaces
+    V = TestFESpace(model,reffeᵤ,dirichlet_tags=["Bottom", "Left", "Right", "Top"],conformity=:H1)
+    Q = TestFESpace(model,reffeₚ,conformity=:L2,constraint=:zeromean)
+    Y = MultiFieldFESpace([V,Q])
+
+    # Define trial FESpaces
+    U = TrialFESpace(V, u)
+    P = TrialFESpace(Q)
+    X = MultiFieldFESpace([U,P])
+
+    # Define triangulation and integration measure
+    degree = order
+    Ωₕ = Triangulation(model)
+    dΩ = Measure(Ωₕ,degree)
+
+    #Define Neumann boundary
+    #Γ = BoundaryTriangulation(model, tags=["Top"])
+    #dΓ = Measure(Γ,degree)
+
+    #h(x) = VectorValue(-1.0, -1.0)
+
+    # Define bilinear and linear form
+    ε(u) = 0.5*(∇(u)+∇(u)')
+    a((u,p),(v,q)) = ∫(2*μ*ε(u)⊙ε(v) - (∇⋅v)*p + q*(∇⋅u) )dΩ
+    l((v,q)) = ∫( f⋅v )dΩ #+ ∫( h⋅v )dΓ
+
+    # Build affine FE operator
+    op = AffineFEOperator(a,l,X,Y)
+
+    # Solve
+    uh, ph = solve(op)
+
+    e = u - uh
+
+    el = sqrt(sum( ∫( e⋅e )dΩ ))
+
+    return el
+
+end
+
+function conv_test(ns)
+"""
+The following function does the convergence test.
+It takes a vector of integers (representing the number of cells per direction in each computation) plus the interpolation order.
+It returns the L^2 error norm for each computation as well as the corresponding cell size.
+"""
+
+    els = Float64[]
+    hs = Float64[]
+
+    for n in ns
+
+        el = run(n)
+        h = 1.0/n
+
+        push!(els,el)
+        push!(hs,h)
+
+    end
+
+    return (els, hs)
+
+end
+
+els, hs = conv_test([1,0.5,0.25,0.125])
+
+using Plots
+
+plot(hs,[els],
+    xaxis=:log, yaxis=:log,
+    label=["L2 k=2"],
+    shape=:auto,
+    xlabel="h",ylabel="error norm")
+
+
+#get slope
+function slope(hs,errors)
+  x = log10.(hs)
+  y = log10.(errors)
+  linreg = hcat(fill!(similar(x), 1), x) \ y
+  linreg[2]
+end
+
+# The slopes for the $L^2$ error norm is computed as
+slope(hs,els)
