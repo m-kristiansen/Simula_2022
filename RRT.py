@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import scipy.spatial as ss
-np.random.seed(5)
+#np.random.seed(5)
 
 def intersect(p1, p2, p3, p4):
     """
@@ -17,7 +17,7 @@ def intersect(p1, p2, p3, p4):
 
     #check paralell:
     if (x1-x2)*(y3-y4) == (y1-y2)*(x3-x4):
-        return True
+        return False
 
     px = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
     py = ((x1*y2-y1*x2)*(y3-y4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
@@ -79,7 +79,7 @@ def connect_RRT(points, max_norm):
     for i in range(len(connections)):
         for j in range(len(connections)):
             if i<j:
-                if connections[i][0] not in connections[j] and connections[i][1] not in connections[j] :
+                if connections[i][0] not in connections[j] and connections[i][1] not in connections[j]:
                     if intersect(points[connections[i][0], :], points[connections[i][1], :], \
                         points[connections[j][0], :], points[connections[j][1], :]):
                         print(connections[i],connections[j])#print intersect connection

@@ -1,7 +1,7 @@
 using GridapGmsh: gmsh
 using LazySets
 using Random
-Random.seed!(2021)
+Random.seed!(1)
 
 function min_area_rect(points, hull)
     """ Get minimum area rectangle by rotation w.r.t the longest line of the convex hull.
@@ -71,11 +71,11 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
 end
 
 
-function box_embed(graph_nodes, graph_lines; padding=0.2, align::Bool=false, view::Bool=true)
+function box_embed(graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, align::Bool=false, view::Bool=true)
  """ Main function to compute bounding box and mesh for graph """
-    gmsh.initialize()
+    gmsh.initialize(["", "-clmax", string(mesh_size)])
 
-    gmsh.model.add("Graph_1")
+    gmsh.model.add("Graph")
 
     # Get bounding box from graph nodes
     b1, b2, b3, b4 = get_bounding_box(graph_nodes[:, 1], graph_nodes[:, 2], padding=padding, align=align, view=view)
@@ -87,10 +87,10 @@ function box_embed(graph_nodes, graph_lines; padding=0.2, align::Bool=false, vie
     bp4 = gmsh.model.geo.addPoint(b4[1], b4[2], 0)
 
     # add box lines to gmsh
-    bl12 = gmsh.model.geo.addLine(bp1, bp2)
-    bl23 = gmsh.model.geo.addLine(bp2, bp3)
-    bl34 = gmsh.model.geo.addLine(bp3, bp4)
-    bl41 = gmsh.model.geo.addLine(bp4, bp1)
+    bl12 = gmsh.model.geo.addLine(bp1, bp2) #bottom box edge
+    bl23 = gmsh.model.geo.addLine(bp2, bp3) #left box edge
+    bl34 = gmsh.model.geo.addLine(bp3, bp4) #top box edge
+    bl41 = gmsh.model.geo.addLine(bp4, bp1) #right box edge
 
     boxloop = gmsh.model.geo.addCurveLoop([bl12, bl23, bl34, bl41])
     boxsurface = gmsh.model.geo.addPlaneSurface([boxloop])
@@ -100,8 +100,14 @@ function box_embed(graph_nodes, graph_lines; padding=0.2, align::Bool=false, vie
     gmsh.model.addPhysicalGroup(2, [boxsurface], 1) #(dim, tag, label)
     gmsh.model.setPhysicalName(2, 1, "My surface") #(dim, tag, label)
 
-    gmsh.model.addPhysicalGroup(1, [bl12, bl23, bl34, bl41], 2) #(dim, tag, label)
-    gmsh.model.setPhysicalName(1, 2, "Boundary") #(dim, tag, label)
+    gmsh.model.addPhysicalGroup(1, [bl12], 2) #(dim, tag, label)
+    gmsh.model.addPhysicalGroup(1, [bl23], 3)
+    gmsh.model.addPhysicalGroup(1, [bl34], 4)
+    gmsh.model.addPhysicalGroup(1, [bl41], 5)
+    gmsh.model.setPhysicalName(1, 2, "Bottom")
+    gmsh.model.setPhysicalName(1, 3, "Left")
+    gmsh.model.setPhysicalName(1, 4, "Top")
+    gmsh.model.setPhysicalName(1, 5, "Right")
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
@@ -117,28 +123,31 @@ function box_embed(graph_nodes, graph_lines; padding=0.2, align::Bool=false, vie
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
-    gmsh.model.geo.addPhysicalGroup(1, graph_lines, 3)
+    gmsh.model.geo.addPhysicalGroup(1, graph_lines, 6)
     gmsh.model.setPhysicalName(1, 3, "Graph")
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
     #embed the graph in the mesh
     gmsh.model.mesh.embed(1, graph_lines, 2, boxsurface) # (dim object_1, object_1, dim object_2, object_2)
+    gmsh.model.mesh.generate(2)
 
     if view
         gmsh.fltk.run()
     end
 
+    gmsh.write("graph.msh")
     gmsh.finalize()
 end
 
 #tester
-include("RRT.jl")
-points  = RRT(30, 0.3, [0.0, 0.0])
-(graph_nodes, graph_edges) = connect_RRT(points, 1.0)
+if PROGRAM_FILE == basename(@__FILE__)
+    include("RRT.jl")
+    points  = RRT(30, 0.3, [0.0, 0.0])
+    (graph_nodes, graph_edges) = connect_RRT(points, 1.0)
 
-box_embed(graph_nodes, graph_edges, padding=0.01, align = true, view = true)
-
+    box_embed(graph_nodes, graph_edges, mesh_size=1, padding=0.2, align = true, view = true)
+end
 
 """
 # Stress test

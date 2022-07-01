@@ -41,13 +41,13 @@ function connect_RRT(points, max_norm)
 return points, hcat(collect.(connections)...)'
 end
 
-"""
-points  = RRT(10, 0.9, [1.0, 1.0])
-nodes, lines = connect_RRT(points, 1.0)
+if PROGRAM_FILE == basename(@__FILE__)
+    points  = RRT(10, 0.9, [1.0, 1.0])
+    nodes, lines = connect_RRT(points, 1.0)
 
-p = scatter(nodes[:, 1], nodes[:, 2])
-for (i, j) in lines
-    plot!([nodes[i, 1], nodes[j, 1]], [nodes[i, 2], nodes[j, 2]], color = :blue)
+    p = scatter(nodes[:, 1], nodes[:, 2])
+    for (i, j) in lines
+        plot!([nodes[i, 1], nodes[j, 1]], [nodes[i, 2], nodes[j, 2]], color = :blue)
+    end
+    savefig(p, "RRT.png")
 end
-savefig(p, "RRT.png")
-"""
