@@ -1,6 +1,6 @@
 using Gridap
 using GridapGmsh
-using LinearAlgebra: I
+#using LinearAlgebra: I #may be of use later
 
 """
     -∇⋅σ(u, p) = f,         σ(u, p) = 2με(u)-pI,       ε(u) = 0.5(∇u+∇u^T)
@@ -37,15 +37,15 @@ The output is the computed L^2 norm.
     partition = (n,n)
     model = CartesianDiscreteModel(domain,partition)#compute mesh and bouding box
     model = simplexify(model)
-    
+
     labels = get_face_labeling(model)
     add_tag_from_tags!(labels,"bottom",[1,5,2])
-    add_tag_from_tags!(labels,"left",[7])
-    add_tag_from_tags!(labels,"right",[8])
+    add_tag_from_tags!(labels,"left",[1,7,3])
+    add_tag_from_tags!(labels,"right",[2,4,8])
     add_tag_from_tags!(labels,"top",[3,6,4])
     add_tag_from_tags!(labels,"inside",[9])
+    #Include corner tags for every side.
 
-    writevtk(model, "foo")
     """
     3 ------ 6 ------- 4
     |                  |
@@ -63,12 +63,12 @@ The output is the computed L^2 norm.
     reffeₚ = ReferenceFE(lagrangian,Float64,order-1)
 
     # Define test FESpaces
-    V = TestFESpace(model,reffeᵤ,dirichlet_tags=["left", "top", "right"],conformity=:H1)
+    V = TestFESpace(model,reffeᵤ,dirichlet_tags=["bottom", "right"],conformity=:H1)
     Q = TestFESpace(model,reffeₚ,conformity=:H1)
     Y = MultiFieldFESpace([V,Q])
 
     # Define trial FESpaces
-    U = TrialFESpace(V, [u, u, u])
+    U = TrialFESpace(V, u)
     P = TrialFESpace(Q)
     X = MultiFieldFESpace([U,P])
 
@@ -78,7 +78,7 @@ The output is the computed L^2 norm.
     dΩ = Measure(Ωₕ,degree)
 
     #Define Neumann boundary
-    Γ = BoundaryTriangulation(model, tags=["bottom"])
+    Γ = BoundaryTriangulation(model, tags=["left", "top"])
     dΓ = Measure(Γ,degree)
     nΓ = get_normal_vector(Γ)
 
@@ -130,7 +130,7 @@ It returns the L^2 error norm for each computation as well as the corresponding 
 
 end
 
-els, hs = conv_test([8,16,32, 64, 128])
+els, hs = conv_test([8, 16, 32, 64, 128])
 
 using Plots
 
