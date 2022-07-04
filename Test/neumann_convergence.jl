@@ -19,7 +19,7 @@ u(x) = VectorValue(-cos(x[1])*sin(x[2]), cos(x[2])*sin(x[1]))
 f(x) = -2*μ*VectorValue(cos(x[1])*sin(x[2]), -cos(x[2])*sin(x[1]))
 
 p(x) = 0 #pressure
-σ(x) = 2*μ*TensorValue(sin(x[1])*sin(x[2])+p(x), 0, 0, -sin(x[1])*sin(x[2])+p(x))
+σ(x) = 2*μ*TensorValue(sin(x[1])*sin(x[2]), 0, 0, -sin(x[1])*sin(x[2]))
 
 
 import Gridap: ∇
@@ -34,7 +34,7 @@ The output is the computed L^2 norm.
 """
 
     domain = (0,1,0,1)
-    partition = (n,n)
+    partition = (64,64)
     model = CartesianDiscreteModel(domain,partition)#compute mesh and bouding box
     labels = get_face_labeling(model)
     add_tag_from_tags!(labels,"bottom",[1,5,2])
@@ -69,7 +69,7 @@ The output is the computed L^2 norm.
     X = MultiFieldFESpace([U,P])
 
     # Define triangulation and integration measure
-    degree = 2*order
+    degree = order
     Ωₕ = Triangulation(model)
     dΩ = Measure(Ωₕ,degree)
 
@@ -95,6 +95,8 @@ The output is the computed L^2 norm.
     ep = p - ph
     println("p: ", sqrt(sum( ∫( ep⋅ep )dΩ )))
     el = sqrt(sum( ∫( eu⋅eu )dΩ )) + sqrt(sum( ∫( ep*ep )dΩ ))
+
+    #writevtk(Ωₕ,"results",order=2,cellfields=["uh"=>uh,"ph"=>ph, "eu"=>eu])
 
     return el
 
@@ -124,7 +126,7 @@ It returns the L^2 error norm for each computation as well as the corresponding 
 
 end
 
-els, hs = conv_test([8,16,32,64])
+els, hs = conv_test([8,16,32])
 
 using Plots
 
