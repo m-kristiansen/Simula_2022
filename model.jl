@@ -47,7 +47,7 @@ function solve_PDE(mesh, dirichlet_tags, neumann_tags, write::Bool=true)
     f(x) = x
     h(x) = VectorValue(1.0, 1.0)
 
-    μ = 1e-1 #Dynamic viscosity
+    μ = 1e-5 #Dynamic viscosity
 
     # Define bilinear and linear form
     ε(u) = 0.5*(∇(u)+∇(u)')
