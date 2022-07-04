@@ -34,14 +34,18 @@ The output is the computed L^2 norm.
 """
 
     domain = (0,1,0,1)
-    partition = (64,64)
+    partition = (n,n)
     model = CartesianDiscreteModel(domain,partition)#compute mesh and bouding box
+    model = simplexify(model)
+    
     labels = get_face_labeling(model)
     add_tag_from_tags!(labels,"bottom",[1,5,2])
     add_tag_from_tags!(labels,"left",[7])
     add_tag_from_tags!(labels,"right",[8])
     add_tag_from_tags!(labels,"top",[3,6,4])
     add_tag_from_tags!(labels,"inside",[9])
+
+    writevtk(model, "foo")
     """
     3 ------ 6 ------- 4
     |                  |
@@ -56,15 +60,15 @@ The output is the computed L^2 norm.
     # Define reference FE (Q2/P1(disc) pair)
     order = 2
     reffeᵤ = ReferenceFE(lagrangian, VectorValue{2,Float64}, order)
-    reffeₚ = ReferenceFE(lagrangian,Float64,order-1;space=:P)
+    reffeₚ = ReferenceFE(lagrangian,Float64,order-1)
 
     # Define test FESpaces
     V = TestFESpace(model,reffeᵤ,dirichlet_tags=["left", "top", "right"],conformity=:H1)
-    Q = TestFESpace(model,reffeₚ,conformity=:L2)
+    Q = TestFESpace(model,reffeₚ,conformity=:H1)
     Y = MultiFieldFESpace([V,Q])
 
     # Define trial FESpaces
-    U = TrialFESpace(V, u)
+    U = TrialFESpace(V, [u, u, u])
     P = TrialFESpace(Q)
     X = MultiFieldFESpace([U,P])
 
@@ -126,7 +130,7 @@ It returns the L^2 error norm for each computation as well as the corresponding 
 
 end
 
-els, hs = conv_test([8,16,32])
+els, hs = conv_test([8,16,32, 64, 128])
 
 using Plots
 
