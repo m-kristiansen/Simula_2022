@@ -1,13 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import scipy.spatial as ss
 #np.random.seed(5)
 
 def intersect(p1, p2, p3, p4):
     """
-    return True if line intersection
-    url(https://en.wikipedia.org/wiki/Line–line_intersection)
+    return True if lines intersect
     """
 
     x1, y1 = p1 # a point on the first line

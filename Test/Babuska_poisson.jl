@@ -28,13 +28,12 @@ u(x) = x[1] + x[2]
 f(x) = x[1] + x[2]
 ∇u(x) = VectorValue(1,1)
 g(x) = u(x)
-λ(x) = 2
 
 import Gridap: ∇
 ∇(::typeof(u)) = ∇u #get grad u from here
 
 domain = (0,1,0,1)
-partition = (16,16)
+partition = (8,8)
 model = CartesianDiscreteModel(domain,partition)
 model = simplexify(model)
 
@@ -56,11 +55,11 @@ add_tag_from_tags!(labels,"inside",[9])
 1 ------ 5 ------- 2
 """
 
-order = 1 #Choose order of local interpolation, order 0 => piecewise linear, order 1 => hat function etc..
+order = 2 #Choose order of local interpolation, order 0 => piecewise linear, order 1 => hat function etc..
 
 #Define local basis functions
-reffe_u = ReferenceFE(lagrangian, Float64, 2)
-reffe_μ = ReferenceFE(lagrangian,Float64, 0)
+reffe_u = ReferenceFE(lagrangian, Float64, order)
+reffe_μ = ReferenceFE(lagrangian,Float64, order-2)
 """
 By changing the order and conformity of M (test space for μ) the conflicting dirichlet conditions i.e.
 The babuska and traditional, was solved.
@@ -70,22 +69,19 @@ The babuska and traditional, was solved.
 Ω = Triangulation(model)
 
 #case 1
-#Works with partition = (4,4)
 #Γd = BoundaryTriangulation(model, tags=["left", "right", "top", "bottom"])
 #Γn = BoundaryTriangulation(model, tags=["bottom", "top"]) #Neumann domain
 #V = TestFESpace(Ω,reffe_u,conformity=:H1)
 
 #case 2
-#needs partition = (64,64)
-Γd = BoundaryTriangulation(model, tags=["left", "right"])
+#Γd = BoundaryTriangulation(model, tags=["left", "right"])
 #Γn = BoundaryTriangulation(model, tags=["bottom", "top"]) #Neumann domain
-V = TestFESpace(Ω,reffe_u,dirichlet_tags = ["top", "bottom"], conformity=:H1)
+#V = TestFESpace(Ω,reffe_u,dirichlet_tags = ["top", "bottom"], conformity=:H1)
 
 #case 3
-#works with partition = (8,8)
-#Γd = BoundaryTriangulation(model, tags=["left"])
-#Γn = BoundaryTriangulation(model, tags=["bottom", "top"]) #Neumann domain
-#V = TestFESpace(Ω,reffe_u,dirichlet_tags = ["right"], conformity=:H1)
+Γd = BoundaryTriangulation(model, tags=["left"])
+Γn = BoundaryTriangulation(model, tags=["bottom", "top"]) #Neumann domain
+V = TestFESpace(Ω,reffe_u,dirichlet_tags = ["right"], conformity=:H1)
 
 
 M = TestFESpace(Γd,reffe_μ, conformity=:L2) #create test space for lagrange multiplier
@@ -98,7 +94,7 @@ X = MultiFieldFESpace([U,Λ])
 
 
 #integration measure
-degree = 2
+degree = order
 dΩ = Measure(Ω,degree)
 dΓd = Measure(Γd,degree)
 dΓn = Measure(Γn,degree)
@@ -106,7 +102,7 @@ dΓn = Measure(Γn,degree)
 
 #Weak formulation
 a((u,λ),(v,μ)) = ∫(∇(u)⋅∇(v) + u*v)dΩ - ∫(λ*v+μ*u)dΓd
-l((v,μ)) = ∫(f*v)dΩ - ∫(μ*g)dΓd #+ ∫((∇u⋅ν)*v)dΓn
+l((v,μ)) = ∫(f*v)dΩ - ∫(μ*g)dΓd + ∫((∇u⋅ν)*v)dΓn
 
 # Build affine FE operator
 op = AffineFEOperator(a,l,X,Y)
@@ -117,19 +113,26 @@ uh, λh = solve(op)
 eu = u - uh
 println("error_u: ", sqrt(sum( ∫( eu*eu )dΩ )))
 
-#whole boundary
-Γ = BoundaryTriangulation(model)
-dΓ = Measure(Γ, order)
+
+#λ is actually given as ∇u⋅n, where n is the normal vector of the edges
+# but writing n as a function of x was not managed. For this simple manifactured sol.
+# it is given as follows
+function λ(x)
+    if x[2] == 0
+        return -1
+    end
+    if x[1] == 0
+        return -1
+    end
+return 1
+end
 
 
-#define λ = (∇u⋅ν)
-foo(x) = x[1] < 0.5 ? -1. : 1.
-
-eλ = foo - λh
+eλ = λ - λh
 println("error_λ: ", sqrt(sum( ∫( eλ*eλ )dΓ )))
 
 writevtk(Ω, "xxx", order=1, cellfields=["uh"=>uh, "eu" => eu])
 writevtk(Γd, "yyy", order=1, cellfields=["λh"=>λh, "eλ" =>eλ])
 
 using Plots
-plot(λh.free_values.vector, label = "λ")
+plot(λh.free_values.vector,seriestype = :scatter, label = "λh")

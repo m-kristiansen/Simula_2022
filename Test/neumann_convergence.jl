@@ -19,7 +19,7 @@ u(x) = VectorValue(-cos(x[1])*sin(x[2]), cos(x[2])*sin(x[1]))
 f(x) = -2*μ*VectorValue(cos(x[1])*sin(x[2]), -cos(x[2])*sin(x[1]))
 
 p(x) = 0 #pressure
-σ(x) = 2*μ*TensorValue(sin(x[1])*sin(x[2]), 0, 0, -sin(x[1])*sin(x[2]))
+σ(x) = 2*μ*TensorValue(sin(x[1])*sin(x[2])-p(x), 0, 0, -sin(x[1])*sin(x[2])-p(x))
 
 
 import Gridap: ∇
@@ -63,7 +63,7 @@ The output is the computed L^2 norm.
     reffeₚ = ReferenceFE(lagrangian,Float64,order-1)
 
     # Define test FESpaces
-    V = TestFESpace(model,reffeᵤ,dirichlet_tags=["bottom", "right"],conformity=:H1)
+    V = TestFESpace(model,reffeᵤ,dirichlet_tags=["right", "bottom", "left"],conformity=:H1)
     Q = TestFESpace(model,reffeₚ,conformity=:H1)
     Y = MultiFieldFESpace([V,Q])
 
@@ -78,7 +78,7 @@ The output is the computed L^2 norm.
     dΩ = Measure(Ωₕ,degree)
 
     #Define Neumann boundary
-    Γ = BoundaryTriangulation(model, tags=["left", "top"])
+    Γ = BoundaryTriangulation(model, tags=["top"])
     dΓ = Measure(Γ,degree)
     nΓ = get_normal_vector(Γ)
 
@@ -100,7 +100,7 @@ The output is the computed L^2 norm.
     println("p: ", sqrt(sum( ∫( ep⋅ep )dΩ )))
     el = sqrt(sum( ∫( eu⋅eu )dΩ )) + sqrt(sum( ∫( ep*ep )dΩ ))
 
-    #writevtk(Ωₕ,"results",order=2,cellfields=["uh"=>uh,"ph"=>ph, "eu"=>eu])
+    #writevtk(Ωₕ,"naumann_conv_test",order=2,cellfields=["uh"=>uh,"ph"=>ph, "eu"=>eu])
 
     return el
 
