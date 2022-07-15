@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-#np.random.seed(5)
+np.random.seed(1)
 
 def intersect(p1, p2, p3, p4):
     """
@@ -55,7 +55,6 @@ def RRT(num_points, connectivity, starting_point):
 
 
 
-
 def connect_RRT(points, max_norm):
     connections = [] #store connections [(point1, point1), ..]
     N = len(points[:, 0])
@@ -85,25 +84,42 @@ def connect_RRT(points, max_norm):
     return points, connections
 
 
-def plot_graph(nodes, lines, view = True):
+def plot_graph(nodes, lines, view = True, annotate = False, save = False):
     fig, ax = plt.subplots()
     ax.scatter(nodes[:, 0], nodes[:, 1], s = 0.1)
     n = range(len(points[:, 0]))
-    for i, txt in enumerate(n):
-        ax.annotate(txt, (nodes[i, 0], nodes[i, 1]), fontsize = 6)
     for i, j in lines:
-        ax.plot([nodes[i, 0], nodes[j, 0]], [nodes[i, 1], nodes[j, 1]], 'b-', lw = 0.1)
+        ax.plot([nodes[i, 0], nodes[j, 0]], [nodes[i, 1], nodes[j, 1]], 'k-', lw = 0.1)
 
+    if annotate == True:
+        for i, txt in enumerate(n):
+            ax.annotate(txt, (nodes[i, 0], nodes[i, 1]),  fontsize = 6)
+    if save:
+        plt.savefig('graph_image.jpg', dpi = 30)
     if view:
         plt.show()
 
+    return ax
+
+
+def getEquidistantPoints(p1, p2, parts):
+    new_point = zip(np.linspace(p1[0], p2[0], parts+1)[1: -1], np.linspace(p1[1], p2[1], parts+1)[1: -1])
+    new_point = np.asarray(list(new_point)[0])
+    print(new_point)
+    return new_point #array
+
+def increase_resolution(nodes, lines, ax):
+    for i, j in lines:
+        new_point = getEquidistantPoints(nodes[i, :], nodes[j, :], 2)
+        ax.plot(new_point[0], new_point[1], 'r.')
 
 
 starting_point = np.array([0, 0])
-points = RRT(20, 0.1, starting_point)
+points = RRT(10, 1, starting_point)
 nodes, lines = connect_RRT(points, 1)
-plot_graph(nodes, lines)
-
+ax = plot_graph(nodes, lines, view = False)
+increase_resolution(nodes, lines, ax)
+plt.show()
 
 
 def create_animation(points):
