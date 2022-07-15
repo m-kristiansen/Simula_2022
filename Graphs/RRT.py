@@ -99,27 +99,6 @@ def plot_graph(nodes, lines, view = True, annotate = False, save = False):
     if view:
         plt.show()
 
-    return ax
-
-
-def getEquidistantPoints(p1, p2, parts):
-    new_point = zip(np.linspace(p1[0], p2[0], parts+1)[1: -1], np.linspace(p1[1], p2[1], parts+1)[1: -1])
-    new_point = np.asarray(list(new_point)[0])
-    print(new_point)
-    return new_point #array
-
-def increase_resolution(nodes, lines, ax):
-    for i, j in lines:
-        new_point = getEquidistantPoints(nodes[i, :], nodes[j, :], 2)
-        ax.plot(new_point[0], new_point[1], 'r.')
-
-
-starting_point = np.array([0, 0])
-points = RRT(10, 1, starting_point)
-nodes, lines = connect_RRT(points, 1)
-ax = plot_graph(nodes, lines, view = False)
-increase_resolution(nodes, lines, ax)
-plt.show()
 
 
 def create_animation(points):
@@ -137,3 +116,9 @@ def create_animation(points):
     anim = animation.FuncAnimation(fig, animate,  frames=25, \
                                            interval=25, blit=True)
     anim.save('rrt.mp4', fps = 1)
+
+if __name__ == "__main__":
+    starting_point = np.array([0, 0])
+    points = RRT(10, 1, starting_point)
+    nodes, lines = connect_RRT(points, 1)
+    plot_graph(nodes, lines, view = True)
