@@ -91,12 +91,18 @@ y = graph_nodes[:, 2]
 M_new, xedges, yedges = np.histogram2d(x, y, partition)           #Make 2D image
 M_new = @. ifelse(M_new == 0, M_new, 1)                           #Make binary
 
-M = np.zeros(partition) #just to start
-i = 1
-while (all(M_new == M) == false)
-    M = M_new
-    x,y = increase_resolution(graph_nodes, graph_edges, i)
-    M_new = np.histogram2d(x, y, partition)[1]
-    M_new = @. ifelse(M_new == 0, M_new, 1)
-    i+=1
+
+function cont_image(M_new)
+    M = np.zeros(partition) #just to start
+    i = 1
+    while (all(M_new == M) == false)
+        M = M_new
+        x,y = increase_resolution(graph_nodes, graph_edges, i)
+        M_new = np.histogram2d(x, y, partition)[1]
+        M_new = @. ifelse(M_new == 0, M_new, 1)
+        i+=1
+    end
+    return M_new
 end
+
+graph_image = cont_image(M_new)
