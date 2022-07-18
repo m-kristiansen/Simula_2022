@@ -17,7 +17,7 @@ max_norm = 1.0              #max distance to connect points
 mesh_size = 1               #Resolution of grid
 padding = 0.2               #distance graph edge to bounding box edges
 align = false               #align bounding box?
-view = false                #view msh file?
+view = false               #view msh file?
 filename = "graph_1.msh"    #box embed stores file which is later used in the solver
 
 #Generate random graph and embed in mesh
@@ -26,12 +26,12 @@ points = RRT(num_points, connectivity, starting_point, seed)
 name, xminmax, yminmax = box_embed(filename, graph_nodes, graph_edges, mesh_size = mesh_size,padding=padding,align=align,view=view)
 
 #Define source terms
-f(x) = 0.01*(x[1]+x[2])
-f̂(x) = 1
-g(x) = exp(-(x[1]+x[2]))
+f(x) = 0
+f̂(x) = 0
+g(x) = 0
 
 #Solve
-uh, ûh, λh = solver(name, f,f̂,g, write = false)
+uh, ûh, λh = solver(name, f,f̂,g, write = true)
 
 
 domain = (xminmax[2], xminmax[1], yminmax[1], yminmax[2])
