@@ -112,7 +112,13 @@ function box_embed(name, graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, a
 
     # At this point we are done with the tissue, now we need vasculature
     # So add the graph
-
+    tips = []
+    for e in graph_edges[:, 2]
+           if (e in graph_edges[:, 1])==false
+               push!(tips, e)
+           end
+    end
+    tips_tag = tips.+4 #computed after bounding box corners
     # add graph points to gmsh
     graph_points = [gmsh.model.geo.addPoint(x..., 0) for x in eachrow(graph_nodes)]
 
@@ -126,6 +132,8 @@ function box_embed(name, graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, a
     gmsh.model.setPhysicalName(1, 6, "Graph")
     gmsh.model.geo.addPhysicalGroup(0, [5], 7) #first graph node is tagged after box corners i.e. 5
     gmsh.model.setPhysicalName(0, 7, "starting_point")
+    gmsh.model.geo.addPhysicalGroup(0, tips_tag, 8)
+    gmsh.model.setPhysicalName(0, 8, "tips")
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
