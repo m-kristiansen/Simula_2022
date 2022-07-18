@@ -1,7 +1,6 @@
 using GridapGmsh: gmsh
 using LazySets
 using Random
-Random.seed!(1)
 
 function min_area_rect(points, hull)
     """ Get minimum area rectangle by rotation w.r.t the longest line of the convex hull.
@@ -71,7 +70,7 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
 end
 
 
-function box_embed(graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, align::Bool=false, view::Bool=true)
+function box_embed(name, graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, align::Bool=false, view::Bool=true)
  """ Main function to compute bounding box and mesh for graph """
     gmsh.initialize(["", "-clmax", string(mesh_size)])
 
@@ -124,7 +123,9 @@ function box_embed(graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, align::
     gmsh.model.geo.synchronize() # Sync CAD representation
 
     gmsh.model.geo.addPhysicalGroup(1, graph_lines, 6)
-    gmsh.model.setPhysicalName(1, 3, "Graph")
+    gmsh.model.setPhysicalName(1, 6, "Graph")
+    gmsh.model.geo.addPhysicalGroup(0, [5], 7) #first graph node is tagged after box corners i.e. 5
+    gmsh.model.setPhysicalName(0, 7, "starting_point")
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
@@ -136,17 +137,20 @@ function box_embed(graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, align::
         gmsh.fltk.run()
     end
 
-    gmsh.write("graph.msh")
+    gmsh.write(name)
     gmsh.finalize()
+
+    return name, b4, b2
 end
 
 #tester
 if PROGRAM_FILE == basename(@__FILE__)
     include("RRT.jl")
-    points  = RRT(30, 0.3, [0.0, 0.0])
+    points  = RRT(30, 0.7, [0.0, 0.0], 1)
     (graph_nodes, graph_edges) = connect_RRT(points, 1.0)
+    filename = "graph_1.msh"
 
-    box_embed(graph_nodes, graph_edges, mesh_size=1, padding=0.2, align = true, view = true)
+    box_embed(filename, graph_nodes, graph_edges, mesh_size=1, padding=0.2, align = true, view = true)
 end
 
 """
