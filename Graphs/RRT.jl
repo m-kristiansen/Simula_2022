@@ -2,7 +2,8 @@ using Distributions
 using Plots
 using LinearAlgebra
 
-function RRT(num_points, connectivity, starting_point)
+function RRT(num_points, connectivity, starting_point, seed)
+    Random.seed!(seed)
     N = num_points
     x0 = starting_point[1]
     y0 = starting_point[2]
@@ -50,4 +51,4 @@ if PROGRAM_FILE == basename(@__FILE__)
         plot!([nodes[i, 1], nodes[j, 1]], [nodes[i, 2], nodes[j, 2]], color = :blue)
     end
     savefig(p, "RRT.png")
-"""
+end
