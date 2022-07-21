@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-np.random.seed(1)
 
 def intersect(p1, p2, p3, p4):
     """
@@ -35,10 +34,11 @@ def intersect(p1, p2, p3, p4):
     return False
 
 
-def RRT(num_points, connectivity, starting_point):
+def RRT(num_points, connectivity, starting_point, seed):
     """ Generates random points using the a version of the Rapid Random Trees algorithmself.
     low connectivity means high spread and vice versa.
     """
+    np.random.seed(seed)
     N = num_points
     a = np.multiply(np.ones((N, 2)), starting_point)
     points = np.zeros((N, 2))
@@ -51,7 +51,10 @@ def RRT(num_points, connectivity, starting_point):
         c = np.array([n[0]+np.cos(k), n[1]+np.sin(k)])
         a[i, :] = c
         points[i] = (c[0]+n[0])/2, (c[1]+n[1])/2,
-    return points
+
+    a = points[:, 0]/np.max(points[:, 0])
+    b = points[:, 1]/np.max(points[:, 1])
+    return np.column_stack((a,b))
 
 
 
@@ -61,27 +64,37 @@ def connect_RRT(points, max_norm):
     for i in range(1, N): #skip starting point
         iter = 0
         for j in range(N):
-            if i != j:
+            if i > j: #only connect from lower to higher index
                 if np.linalg.norm(points[i, :]-points[j, :]) < max_norm:
                     iter += 1
-                    if iter < 2: #restrict connections in clusters and dont connect both ways
+                    if iter < 2: #restrict connections in clusters, only 1 brancing allowed
                         connections.append((j, i))
 
-    #exclude nodes without connection
-    for i in range(len(points)):
-        if (i in np.array(connections)) == False:
-            points[i, :] = None
-
-    #exclude nodes with intersect connections
+    # #exclude nodes with intersect connections
+    intersections = []
     for i in range(len(connections)):
         for j in range(len(connections)):
             if i<j:
                 if connections[i][0] not in connections[j] and connections[i][1] not in connections[j]:
                     if intersect(points[connections[i][0], :], points[connections[i][1], :], \
                         points[connections[j][0], :], points[connections[j][1], :]):
-                        print(connections[i],connections[j])#print intersect connection
+                        intersections.append(j)#print intersect connection
 
-    return points, connections
+    #exclude nodes without connection
+    lines = np.array(connections)
+    lines = np.delete(lines, intersections, axis = 0)
+    points_removed = []
+    i = 1
+    while i < len(points):
+        if (i in lines[:, 1]) == False:
+            points[i, :] = None #np.delete(points, i, 0)
+            points_removed.append(i)
+            if np.where(lines[:, 0]==i)[0].size > 0:
+                lines = np.delete(lines, np.where(lines[:, 0]==i)[0], axis = 0)
+        i += 1
+
+    print("intersections: {}, points removed: {}, seed: {}".format(intersections, points_removed, seed))
+    return points, lines
 
 
 def plot_graph(nodes, lines, view = True, annotate = False, save = False):
@@ -98,7 +111,6 @@ def plot_graph(nodes, lines, view = True, annotate = False, save = False):
         plt.savefig('graph_image.jpg', dpi = 30)
     if view:
         plt.show()
-
 
 
 def create_animation(points):
@@ -118,7 +130,8 @@ def create_animation(points):
     anim.save('rrt.mp4', fps = 1)
 
 if __name__ == "__main__":
-    starting_point = np.array([0, 0])
-    points = RRT(10, 1, starting_point)
-    nodes, lines = connect_RRT(points, 1)
-    plot_graph(nodes, lines, view = True)
+    for seed in range(1, 15):
+        starting_point = np.array([0, 0])
+        points = RRT(35, 1, starting_point, seed)
+        nodes, lines = connect_RRT(points, 0.1)
+        plot_graph(nodes, lines, view = True, annotate = True)
