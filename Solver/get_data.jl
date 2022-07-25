@@ -65,3 +65,4 @@ end
 np.save("../Data/input_images_1", input_images)
 np.save("../Data/target_images_1", target_images)
 println("Intersections at seed: ", intersecting_seeds, "  Negative point(s) at seed: ", negativepoint_seeds[:])
+#first 1000 done
