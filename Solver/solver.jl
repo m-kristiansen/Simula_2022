@@ -1,13 +1,14 @@
 using Gridap
 using GridapGmsh
+include("graph_distance.jl")
 """
-We want to solve the coupled 2D/1D problem
+Solve the coupled 2D/1D problem using the Gridap functionality on gmsh generated file
 -Δu = f                on Ω
 -Δû - λ = f̂            on Γ       λ = -∇u⋅ν
 u-û = g                on Γ
 
 """
-function solver(filename,f, f̂, g; write::Bool=true)
+function solver(filename,f, f̂, g, dirichlet_tags; κ=1, κ̂=1, write::Bool=true)
     model = GmshDiscreteModel(filename)
     #model = simplexify(model)
 
@@ -24,15 +25,23 @@ function solver(filename,f, f̂, g; write::Bool=true)
     ∂Ω = BoundaryTriangulation(model, tags = ["Bottom", "Left", "Right", "Top"])
 
     V = TestFESpace(Ω,reffe_u, conformity=:H1)
-    V̂ = TestFESpace(Γ,reffe_û,dirichlet_tags = ["starting_point", "tips"], conformity=:H1)
+    V̂ = TestFESpace(Γ,reffe_û,dirichlet_tags = dirichlet_tags, conformity=:H1)
     M = TestFESpace(Γ,reffe_μ, conformity=:L2) #create test space for lagrange multiplier
 
     Y = MultiFieldFESpace([V,V̂,M])
 
-    dc(x) = 1/(1+0.01*sqrt((x[1]/12)^2+(x[2]/9)^2))
+    dc(x) = 1/(1+x) #takes distance from root to tip as input and returns the dirchlet value to be used
+
+    distances = zeros(length(dirichlet_tags))
+    dirichlet_cond = [1.0]
+    for i in 2:length(dirichlet_tags)
+        distances[i] = graph_distance(model, "Graph", dirichlet_tags[1], dirichlet_tags[i])
+        push!(dirichlet_cond, dc(distances[i]))
+    end
+
     # Define global trial space
     U = TrialFESpace(V) #include u to enforce dirichlet tradtionally
-    Û = TrialFESpace(V̂, [1, dc]) # 1 dirichlet on start of graph
+    Û = TrialFESpace(V̂, dirichlet_cond) # 1 dirichlet on start of graph
     Λ = TrialFESpace(M) #trial space for lagrange multiplier
     X = MultiFieldFESpace([U,Û,Λ])
 
@@ -46,7 +55,7 @@ function solver(filename,f, f̂, g; write::Bool=true)
     h(x) = VectorValue(0,0) #Neumann on bounding box
 
 
-    a((u,û,λ),(v,v̂,μ)) = ∫(∇(u)⋅∇(v))dΩ + ∫(λ*(v-v̂))dΓ + ∫(∇(û)⋅∇(v̂))dΓ + ∫((u-û)*μ)dΓ
+    a((u,û,λ),(v,v̂,μ)) = ∫(κ*∇(u)⋅∇(v))dΩ + ∫(λ*(v-v̂))dΓ + ∫(κ̂*∇(û)⋅∇(v̂))dΓ + ∫((u-û)*μ)dΓ
 
     l((v,v̂,μ)) = ∫(f*v)dΩ + ∫(f̂*v̂)dΓ + ∫(g*μ)dΓ + ∫((h⋅ν)*v)d∂Ω
 
