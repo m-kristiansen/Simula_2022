@@ -58,7 +58,17 @@ function get_bounding_box(x_values, y_values; padding=0.2, align::Bool=false, vi
     b3 = (center_x+dx, center_y+dy)
     b4 = (center_x+dx, center_y-dy)
 
+    #square box
+    if b3[1]<b3[2]
+        b3 = (b3[2], center_y+dy)
+        b4 = (b3[2], center_y-dy)
+    else
+        b3 = (center_x+dx,b3[1])
+        b2 = (center_x-dx,b3[1])
+    end
+
     box = [b1, b2, b3, b4]
+    
     if align
         #Rotate back
         b = [[box[i][1] for i in 1:length(box)] [box[i][2] for i in 1:length(box)]] #reshape
@@ -110,15 +120,17 @@ function box_embed(name, graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, a
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
-    # At this point we are done with the tissue, now we need vasculature
-    # So add the graph
     tips = []
-    for e in graph_edges[:, 2]
-           if (e in graph_edges[:, 1])==false
+    for e in graph_lines[:, 2]
+           if (e in graph_lines[:, 1])==false
                push!(tips, e)
            end
     end
     tips_tag = tips.+4 #computed after bounding box corners
+
+
+    # At this point we are done with the tissue, now we need vasculature
+    # So add the graph
     # add graph points to gmsh
     graph_points = [gmsh.model.geo.addPoint(x..., 0) for x in eachrow(graph_nodes)]
 
@@ -132,8 +144,14 @@ function box_embed(name, graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, a
     gmsh.model.setPhysicalName(1, 6, "Graph")
     gmsh.model.geo.addPhysicalGroup(0, [5], 7) #first graph node is tagged after box corners i.e. 5
     gmsh.model.setPhysicalName(0, 7, "starting_point")
-    gmsh.model.geo.addPhysicalGroup(0, tips_tag, 8)
-    gmsh.model.setPhysicalName(0, 8, "tips")
+
+    dirichlet_tags = ["starting_point"]
+
+    for i in 1:length(tips_tag)
+        gmsh.model.geo.addPhysicalGroup(0, [tips_tag[i]], i+7)
+        gmsh.model.setPhysicalName(0, i+7, "tip_$i")
+        push!(dirichlet_tags, "tip_$i")
+    end
 
     gmsh.model.geo.synchronize() # Sync CAD representation
 
@@ -148,16 +166,15 @@ function box_embed(name, graph_nodes, graph_lines; mesh_size=0.1, padding=0.2, a
     gmsh.write(name)
     gmsh.finalize()
 
-    return name, b4, b2
+    return name, b4, b2, dirichlet_tags
 end
 
 #tester
-if PROGRAM_FILE == basename(@__FILE__)
+false && begin
     include("RRT.jl")
     points  = RRT(30, 0.7, [0.0, 0.0], 1)
     (graph_nodes, graph_edges) = connect_RRT(points, 1.0)
     filename = "graph_1.msh"
-
     box_embed(filename, graph_nodes, graph_edges, mesh_size=1, padding=0.2, align = true, view = true)
 end
 
