@@ -1,108 +1,67 @@
-using Test
-using Gridap
-using Gridap.CellData
-using Gridap.Visualization
-
-path = "/Users/martinkristiansen/Desktop/Simula_2022"
-
-include(path*"/Graphs/RRT.jl")
-include(path*"/Graphs/graphs.jl")
-include(path*"/Solver/solver.jl")
-
-seed = 1                    #Random seed
-num_points = 30             #Number of rapid random tree points to generate graph
-connectivity = 0.6          #connectivity of graph
-starting_point = [0.2, 0.2] #starting point for graph, include padding
-max_norm = 1.0              #max distance to connect points
-mesh_size = 1               #Resolution of grid
-padding = 0.2               #distance graph edge to bounding box edges
-align = false               #align bounding box?
-view = false               #view msh file?
-filename = "graph_1.msh"    #box embed stores file which is later used in the solver
-
-#Generate random graph and embed in mesh
-points = RRT(num_points, connectivity, starting_point, seed)
-(graph_nodes, graph_edges) = connect_RRT(points, max_norm)
-name, xminmax, yminmax = box_embed(filename, graph_nodes, graph_edges, mesh_size = mesh_size,padding=padding,align=align,view=view)
-
-#Define source terms
-f(x) = 0
-f̂(x) = 0
-g(x) = 0
-
-#Solve
-uh, ûh, λh = solver(name, f,f̂,g, write = true)
-
-
-domain = (xminmax[2], xminmax[1], yminmax[1], yminmax[2])
-
-partition = (20,20) #not bigger than xmax/mesh_size, ymax/mesh_size
-
-# Get target data
-𝒯₁ = CartesianDiscreteModel(domain, partition)
-iuh = Interpolable(uh)
-reffe_u = ReferenceFE(lagrangian, Float64, 0)
-V₁ = FESpace(𝒯₁, reffe_u; conformity=:L2)
-
-fu = interpolate(iuh,V₁)
-#Gridap.writevtk(get_triangulation(fu), "interpolate", cellfields=["fu"=>fu])
-imgvector = vcat(fu.cell_dof_values...) #collect in [len(cell_dof_values), 1] vector
-img = reshape(imgvector, partition) #reshape to square matrix with (x, y) orientation
-
-#test target data
-xmin = xminmax[2]
-xmax = xminmax[1]
-ymin = yminmax[1]
-ymax = yminmax[2]
-# img = img' to get same oriantation as write vtk in heatmap (Plots) https://github.com/JuliaPlots/Makie.jl/issues/205
-println("min= ", (xmin, ymin))
-println("max= ", (xmax, ymax))
-@test img[1,1] == fu(VectorValue(xmin, ymin))
-@test img[1, end] == fu(VectorValue(xmin, ymax))
-@test img[end, 1] == fu(VectorValue(xmax, ymin))
-@test img[end, end] == fu(VectorValue(xmax, ymax))
-
-#Get input data
-function getEquidistantPoints(p1, p2, parts)
-    new_points = zip(LinRange(p1[1], p2[1], parts+2)[2: end-1], LinRange(p1[2], p2[2], parts+2)[2: end-1])
-    new_points = hcat(collect.(new_points)...)' #1x2 matrix
-    return new_points
-end
-
-function increase_resolution(nodes, lines, num_points)
-    x = nodes[:, 1]
-    y = nodes[:, 2]
-    for (i, j) in eachrow(lines)
-        new_points = getEquidistantPoints(nodes[i, :], nodes[j, :], num_points)
-        x = vcat(x, new_points[:, 1]) # append, placement doesnt matter
-        y = vcat(y, new_points[:, 2])
-    end
-    return x,y
-end
+include("../Graphs/RRT.jl")
+include("../Graphs/graphs.jl")
+include("solver.jl")
+include("Binary_mask.jl")
+include("Interpolate.jl")
 
 using PyCall
-np = pyimport("numpy") #need histogram2d
+np = pyimport("numpy") #need histogram2d and saver
 
-partition = [30, 30]
+num_points = 30             #Number of rapid random tree points to generate graph
+connectivity = 1            #connectivity of graph
+mesh_size = 1               #Resolution of grid
+padding = 0.01              #distance graph edge to bounding box edges
+partition = (128, 128)
+align = false               #align bounding box?
+view = false                #view msh file?
+filename = "graph_1.msh"    #box embed stores file which is later used in the solver
 
-x = graph_nodes[:, 1]
-y = graph_nodes[:, 2]
 
-M_new, xedges, yedges = np.histogram2d(x, y, partition)           #Make 2D image
-M_new = @. ifelse(M_new == 0, M_new, 1)                           #Make binary
+#store bad seeds
+intersecting_seeds = Int[] #store bad seeds
+negativepoint_seeds = Int[]
 
+for seed in 1:1000
+    points = RRT(num_points, connectivity, seed)
+    graph_nodes, graph_edges, POI = connect_RRT(points)
 
-function cont_image(M_new)
-    M = np.zeros(partition) #just to start
-    i = 1
-    while (all(M_new == M) == false)
-        M = M_new
-        x,y = increase_resolution(graph_nodes, graph_edges, i)
-        M_new = np.histogram2d(x, y, partition)[1]
-        M_new = @. ifelse(M_new == 0, M_new, 1)
-        i+=1
+    if all(>=(0), points) == false
+        push!(negativepoint_seeds, seed)
+        continue #jump seed with negative point value, (found occurence at seed 43, 30 points 1.0 connectivity)
     end
-    return M_new
+
+    graph_nodes, graph_edges, POI = connect_RRT(points)
+
+    if length(POI) > 0
+        push!(intersecting_seeds, seed)
+        continue #jumps seed if intersecting graph
+    end
+
+    name, xminmax, yminmax, dirichlet_tags = box_embed(filename, graph_nodes, graph_edges, mesh_size = mesh_size,padding=padding,align=align,view=view)
+    #Define source terms
+    f(x) = 0
+    f̂(x) = 0
+    g(x) = 0
+
+    #Solve
+    println("inside solver")
+    uh, ûh, λh = solver(name, f,f̂,g, dirichlet_tags, write = false)
+    domain = (xminmax[2], xminmax[1], yminmax[1], yminmax[2]) #normalization makes this always ≈ (0-padding, 1+padding)
+    println("binary mask")
+    input = binary_mask(graph_nodes, graph_edges, padding, partition)
+    println("interpolating")
+    target = interpolate(partition, domain, uh)
+
+    if seed == 1
+        global input_images = np.expand_dims(input, axis = 0)
+        global target_images = np.expand_dims(target, axis = 0)
+    else
+        input_images = np.append(input_images, np.expand_dims(input, axis = 0), axis = 0)
+        target_images = np.append(target_images, np.expand_dims(target, axis = 0), axis = 0)
+    end
+    println("done with seed: ", seed)
 end
 
-graph_image = cont_image(M_new)
+np.save("../Data/input_images_1", input_images)
+np.save("../Data/target_images_1", target_images)
+println("Intersections at seed: ", intersecting_seeds, "  Negative point(s) at seed: ", negativepoint_seeds[:])
