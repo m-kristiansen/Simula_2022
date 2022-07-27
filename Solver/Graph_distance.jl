@@ -2,7 +2,6 @@ using Gridap
 using Gridap.Geometry
 using Graphs, SimpleWeightedGraphs
 
-
 """
 Given a Gridap model where the edges are marked with `graph_tag` use this to
 define a graph and compute a distance between the vertices marked as `start_tag`

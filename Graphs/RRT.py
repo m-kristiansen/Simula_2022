@@ -17,7 +17,7 @@ def intersect(p1, p2, p3, p4):
         return False
 
     px = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
-    py = ((x1*y2-y1*x2)*(y3-y4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+    py = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
 
     #scalar value desciding point of intersection on line 1
     t = ((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)) #scalar value desciding point of intersection on line 1
@@ -29,6 +29,7 @@ def intersect(p1, p2, p3, p4):
 
     if all(0<= i <= 1 for i in _):
         #print('points = {}'.format(((x1, y1),(x2, y2), (x3, y3), (x4, y4))))
+        print(px,py)
         return True
 
     return False
@@ -52,9 +53,10 @@ def RRT(num_points, connectivity, starting_point, seed):
         a[i, :] = c
         points[i] = (c[0]+n[0])/2, (c[1]+n[1])/2,
 
-    a = points[:, 0]/np.max(points[:, 0])
-    b = points[:, 1]/np.max(points[:, 1])
-    return np.column_stack((a,b))
+    # a = points[:, 0]/np.max(points[:, 0])
+    # b = points[:, 1]/np.max(points[:, 1])
+    #np.column_stack((a,b))
+    return points
 
 
 
@@ -72,28 +74,29 @@ def connect_RRT(points, max_norm):
 
     # #exclude nodes with intersect connections
     intersections = []
+    POI = []
     for i in range(len(connections)):
         for j in range(len(connections)):
             if i<j:
                 if connections[i][0] not in connections[j] and connections[i][1] not in connections[j]:
                     if intersect(points[connections[i][0], :], points[connections[i][1], :], \
                         points[connections[j][0], :], points[connections[j][1], :]):
-                        intersections.append(j)#print intersect connection
+                        intersections.append(j)
 
     #exclude nodes without connection
     lines = np.array(connections)
-    lines = np.delete(lines, intersections, axis = 0)
-    points_removed = []
-    i = 1
-    while i < len(points):
-        if (i in lines[:, 1]) == False:
-            points[i, :] = None #np.delete(points, i, 0)
-            points_removed.append(i)
-            if np.where(lines[:, 0]==i)[0].size > 0:
-                lines = np.delete(lines, np.where(lines[:, 0]==i)[0], axis = 0)
-        i += 1
+    # lines = np.delete(lines, intersections, axis = 0)
+    # points_removed = []
+    # i = 1
+    # while i < len(points):
+    #     if (i in lines[:, 1]) == False:
+    #         #points[i, :] = None
+    #         points_removed.append(i)
+    #         if np.where(lines[:, 0]==i)[0].size > 0:
+    #             lines = np.delete(lines, np.where(lines[:, 0]==i)[0], axis = 0)
+    #     i += 1
 
-    print("intersections: {}, points removed: {}, seed: {}".format(intersections, points_removed, seed))
+    #print("intersections: {}, points removed: {}".format(intersections, points_removed))
     return points, lines
 
 
@@ -130,8 +133,8 @@ def create_animation(points):
     anim.save('rrt.mp4', fps = 1)
 
 if __name__ == "__main__":
-    for seed in range(1, 15):
+    for i in range(1,10):
         starting_point = np.array([0, 0])
-        points = RRT(35, 1, starting_point, seed)
-        nodes, lines = connect_RRT(points, 0.1)
+        points = RRT(100, 0.2, starting_point, i)
+        nodes, lines = connect_RRT(points, 1)
         plot_graph(nodes, lines, view = True, annotate = True)
