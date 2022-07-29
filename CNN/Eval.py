@@ -17,7 +17,6 @@ best_epoch = checkpoint["best_epoch"]
 
 model.eval()
 
-
 def prediction_samples(test_data):
     inp, targ = test_data[0]
     pred = model(inp.unsqueeze(0))

@@ -23,7 +23,6 @@ def draw_samples(x, n, dtype=torch.FloatTensor):
 
     return torch.from_numpy(dots).type(dtype)
 
-
 path = "/Users/martinkristiansen/Desktop/Simula_2022/Data/"
 input = np.load(path+"input_images.npy")
 target = np.load(path+"target_images.npy")

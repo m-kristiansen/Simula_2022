@@ -54,7 +54,6 @@ def load_data(split, batch_size, device):
 
     return train_dataloader, test_dataloader, train_data, test_data
 
-
 if __name__ == "__main__":
     #check if its working properly
     test_data = load_data(0.33, 10)[1]
