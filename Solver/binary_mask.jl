@@ -49,13 +49,19 @@ made to the mask, i.e. the binary mask is continous."""
 
     i = 1
     while (all(M_new == M) == false)
+        M_prev = M
         M = M_new
         x,y = increase_resolution(graph_nodes, graph_edges, i, padding)
         M_new = np.histogram2d(x, y, partition)[1]
         M_new[end, end] = 0 #remove fictive node
         M_new[1,1] = 0
         M_new = @. ifelse(M_new == 0, M_new, 1)
+        #heatmap(M_prev, show = true)
         i+=1
+        if i == 300
+            # We break after 300 new points between each node pair. Reason: seed 3504
+            break
+        end
     end
     println("num_iter: ",i)
     return M_new
@@ -66,10 +72,31 @@ false && begin
     using Plots
     using Random
     include("../Graphs/RRT.jl")
-    for seed in rand(1000:10, 100)
+    for seed in rand(1:1000, 100)
         points = RRT(30, 1, seed)
         graph_nodes, graph_edges = connect_RRT(points)
         img = binary_mask(graph_nodes, graph_edges, 0.01, (128,128))
         heatmap(img', show = true) #heatmap transposes image
     end
+    function create_figure(seeds)
+        points = RRT(30, 1, seeds[1])
+        graph_nodes, graph_edges = connect_RRT(points)
+        img = binary_mask(graph_nodes, graph_edges, 0.01, (128,128))
+        a = heatmap(img', colorbar = false) #heatmap transposes image
+        points = RRT(30, 1, seeds[2])
+        graph_nodes, graph_edges = connect_RRT(points)
+        img = binary_mask(graph_nodes, graph_edges, 0.01, (128,128))
+        b = heatmap(img', colorbar = false) #heatmap transposes image
+        points = RRT(30, 1, seeds[3])
+        graph_nodes, graph_edges = connect_RRT(points)
+        img = binary_mask(graph_nodes, graph_edges, 0.01, (128,128))
+        c = heatmap(img', colorbar = false) #heatmap transposes image
+        points = RRT(30, 1, seeds[4])
+        graph_nodes, graph_edges = connect_RRT(points)
+        img = binary_mask(graph_nodes, graph_edges, 0.01, (128,128))
+        d = heatmap(img', colorbar = false) #heatmap transposes image
+        e = plot(a, b, c, d, layout=(1,4), show = true, size =(1200, 310))
+        savefig(e, "4_binary_masks")
+    end
+    #create_figure([1,2,3,4])
 end

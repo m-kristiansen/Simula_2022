@@ -21,7 +21,7 @@ filename = "graph_1.msh"    #box embed stores file which is later used in the so
 intersecting_seeds = Int[] #store bad seeds
 negativepoint_seeds = Int[]
 
-for seed in 1:1000
+for seed in 10000:10023
     points = RRT(num_points, connectivity, seed)
     graph_nodes, graph_edges, POI = connect_RRT(points)
 
@@ -50,9 +50,9 @@ for seed in 1:1000
     println("binary mask")
     input = binary_mask(graph_nodes, graph_edges, padding, partition)
     println("interpolating")
-    target = interpolate(partition, domain, uh)
+    target = interpolate(partition, domain, uh, write = false)
 
-    if seed == 1
+    if seed == 10000
         global input_images = np.expand_dims(input, axis = 0)
         global target_images = np.expand_dims(target, axis = 0)
     else
@@ -62,7 +62,6 @@ for seed in 1:1000
     println("done with seed: ", seed)
 end
 
-np.save("../Data/input_images_1", input_images)
-np.save("../Data/target_images_1", target_images)
+np.save("../Data/input_images_10", input_images)
+np.save("../Data/target_images_10", target_images)
 println("Intersections at seed: ", intersecting_seeds, "  Negative point(s) at seed: ", negativepoint_seeds[:])
-#first 1000 done

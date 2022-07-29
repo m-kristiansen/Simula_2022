@@ -69,8 +69,8 @@ function solver(filename,f, f̂, g, dirichlet_tags; κ=1, κ̂=1, write::Bool=tr
     uh, ûh, λh = wh
 
     if write
-        Gridap.writevtk(Ω, "foo", cellfields=["uh" => uh])
-        Gridap.writevtk(Γ, "bar", cellfields=["uhath" => ûh, "ph"=>λh])
+        Gridap.writevtk(Ω, "../Data/foo", cellfields=["uh" => uh])
+        Gridap.writevtk(Γ, "../Data/bar", cellfields=["uhath" => ûh, "ph"=>λh])
     end
     return uh, ûh, λh
 end

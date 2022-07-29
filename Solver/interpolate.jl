@@ -1,15 +1,15 @@
 using Gridap
 using Gridap.CellData
 
-function interpolate(partition, domain, uh, write::Bool = false)
+function interpolate(partition, domain, uh; write::Bool = false)
     """ Takes a singlefield FE function and interpolates on square grid, the returned value is a one channel image
     with size partition containing the values of uh. """
 
     𝒯₁ = CartesianDiscreteModel(domain, partition)
 
-    for i in 1:100 # the length of this is highly ambigous
+    for i in 2:100 # the length of this is highly ambigous
         try
-            sm = KDTreeSearch(num_nearest_vertices=i) #this is default = 1 but we increase if AssertionError
+            sm = KDTreeSearch(num_nearest_vertices=i) #this is default = 2 but we increase if AssertionError
             iuh = Interpolable(uh; tol=1E-12, searchmethod=sm)
             reffe_u = ReferenceFE(lagrangian, Float64, 0)
             V₁ = FESpace(𝒯₁, reffe_u; conformity=:L2)
@@ -22,7 +22,7 @@ function interpolate(partition, domain, uh, write::Bool = false)
     end
 
     if write
-        Gridap.writevtk(get_triangulation(fu), "interpolate", cellfields=["fu"=>fu])
+        Gridap.writevtk(get_triangulation(fu), "../Data/interpolate", cellfields=["fu"=>fu])
     end
 
     imgvector = vcat(fu.cell_dof_values...) #collect in [len(cell_dof_values), 1] vector
@@ -31,7 +31,7 @@ return img
 end
 
 
-false && begin
+true && begin
 # stress test
     include("../Graphs/RRT.jl")
     include("solver.jl")
@@ -48,7 +48,9 @@ false && begin
 
     intersecting_seeds = Int[] #store bad seeds
     negativepoints_seeds = Int[]
-    for seed in rand(1:1000, 20)
+    a,b,c,d = plot(), plot(), plot(), plot()
+    p = [a,b,c,d]
+    for seed in [1,2,3,4]
         points = RRT(num_points, connectivity, seed)
         if all(>=(0), points) == false
             push!(negativepoints_seeds, seed)
@@ -73,7 +75,9 @@ false && begin
         uh, ûh, λh = solver(name, f,f̂,g, dirichlet_tags, write = true)
         domain = (xminmax[2], xminmax[1], yminmax[1], yminmax[2]) #normalization makes this always equal (0-padding, 1+padding)
         img = interpolate(partition, domain, uh)
-        heatmap(img', show = true)
+        p[seed] = heatmap(img', colorbar = false, c = :viridis)
     end
+    p5 = plot(p[1], p[2], p[3], p[4], layout=(1,4), show = true, size =(1200, 300))
+    savefig(p5, "4_interpolations")
     println("Intersections at seed: ", intersecting_seeds, "  Negative point(s) at seed: ", negativepoints_seeds[:])
 end

@@ -108,6 +108,37 @@ false && begin
             plot!([nodes[i, 1], nodes[j, 1]],[[nodes[i, 2], nodes[j, 2]]], color = :blue, show = true, legend = false,
             xlim = (0,1.01), ylim = (0,1.01))
         end
-        sleep(1.0) #time delay between seeds
+        sleep(1.0) #time delay between plots
     end
+    #Figure
+    function create_figure(seeds)
+        points = RRT(30, 1, seeds[1])
+        nodes, lines, POI = connect_RRT(points)
+        a = scatter(nodes[:, 1], nodes[:, 2])
+        for (i,j) in eachrow(lines)
+            plot!([nodes[i, 1], nodes[j, 1]],[[nodes[i, 2], nodes[j, 2]]], color = :blue, legend = false)
+        end
+        points = RRT(30, 1, seeds[2])
+        nodes, lines, POI = connect_RRT(points)
+        b = scatter(nodes[:, 1], nodes[:, 2])
+        for (i,j) in eachrow(lines)
+            plot!([nodes[i, 1], nodes[j, 1]],[[nodes[i, 2], nodes[j, 2]]], color = :blue, legend = false)
+        end
+        points = RRT(30, 1, seeds[3])
+        nodes, lines, POI = connect_RRT(points)
+        c = scatter(nodes[:, 1], nodes[:, 2])
+        for (i,j) in eachrow(lines)
+            plot!([nodes[i, 1], nodes[j, 1]],[[nodes[i, 2], nodes[j, 2]]], color = :blue, legend = false)
+        end
+        points = RRT(30, 1, seeds[4])
+        nodes, lines, POI = connect_RRT(points)
+        d = scatter(nodes[:, 1], nodes[:, 2])
+        for (i,j) in eachrow(lines)
+            plot!([nodes[i, 1], nodes[j, 1]],[[nodes[i, 2], nodes[j, 2]]], color = :blue, legend = false)
+        end
+        e = plot(a, b, c, d, layout=(1,4), show = true, size =(1200, 300))
+        savefig(e, "4_graphs")
+    end
+    #create_figure([1,2,3,4])
+
 end

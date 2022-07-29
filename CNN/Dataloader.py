@@ -36,12 +36,12 @@ class Data(Dataset):
 def load_data(split, batch_size, device):
     if device == 'cpu':
         path = '/Users/martinkristiansen/Desktop/Simula_2022/Data/'
-        input = np.load(path+"input_images.npy")
-        target = np.load(path+"target_images.npy")
-        
+        input = np.load(path+"input_images_10k.npy")
+        target = np.load(path+"target_images_10k.npy")
+
     if device == 'cuda:0':
-        input = np.load("input_images.npy")
-        target = np.load("target_images.npy")
+        input = np.load("input_images_10k.npy")
+        target = np.load("target_images_10k.npy")
 
     #split
     x_train, x_test, y_train, y_test = train_test_split(input, target, test_size=split)
