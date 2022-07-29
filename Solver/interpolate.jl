@@ -80,4 +80,5 @@ true && begin
     p5 = plot(p[1], p[2], p[3], p[4], layout=(1,4), show = true, size =(1200, 300))
     savefig(p5, "4_interpolations")
     println("Intersections at seed: ", intersecting_seeds, "  Negative point(s) at seed: ", negativepoints_seeds[:])
+
 end
