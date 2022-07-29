@@ -16,7 +16,6 @@ align = false               #align bounding box?
 view = false                #view msh file?
 filename = "graph_1.msh"    #box embed stores file which is later used in the solver
 
-
 #store bad seeds
 intersecting_seeds = Int[] #store bad seeds
 negativepoint_seeds = Int[]
