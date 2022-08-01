@@ -58,4 +58,21 @@ https://www.kernel-operations.io/geomloss/index.html has an pytorch compatible i
 
 Lastly I want to mention this awesome article https://www.nature.com/articles/s41598-021-85434-9 which inspire a way to produce much more realistic graphs.  
 
+Main files:
+
+Graphs/
+- RRT.jl    - Generates RRT points and connects them. 
+- graphs.jl - Creates bounding box for graph and generates mesh. Provides also different tags needed to solve the coupled system with spesific BC's.
+
+Solver/
+- Solver.jl - Solves the coupled system. 
+- Interpolate.jl - Interpolates the solution on given partition. Used to generate the target images. 
+- Binary_mask.jl - Creates binary mask of graph on given partition. Used to generate the input images. 
+- get_data.jl - Combines the above to to generate data in iterative loop.
+
+CNN/
+- Dataloader.py - Uses Pytorch functionality to load data with given test/train split and batch size. 
+- Model.py - Unet implementation. 
+- Trainer.py - Train the network with given loss and optimizer. 
+- Eval.py - Evaluate best model and test/train loss. 
 
