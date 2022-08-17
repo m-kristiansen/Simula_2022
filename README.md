@@ -46,6 +46,7 @@ Our reference paper (https://www.sciencedirect.com/science/article/abs/pii/S0045
 
 Sadly the project ends now, but I will list a few improvements that should be done for potential future endeavours. 
 
+- Add scalar parameters to the differential equations, obtaining a more realistic picture of the distrubution in the vasculature. 
 - More data, data augmentation can be applied on the 10k already produces different graphs. 
 - Hyperparameter tuning
 - Cross validation 
